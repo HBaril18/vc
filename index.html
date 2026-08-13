@@ -119,7 +119,10 @@
               <span>Score actuel</span>
               <strong id="scorePreview">0 / 100</strong>
             </div>
-            <button type="submit">Sauvegarder l'évaluation</button>
+            <div class="form-actions">
+              <button type="submit">Sauvegarder l'évaluation</button>
+              <button type="button" class="secondary" id="pdf-selected">Profil PDF du candidat</button>
+            </div>
           </form>
         </div>
       </section>
@@ -139,7 +142,7 @@
           <div class="table-wrap">
             <table>
               <thead>
-                <tr><th>Rang</th><th>ID</th><th>Nom</th><th>Pseudo</th><th>Rôle</th><th>Score</th><th>Décision</th><th>Commentaire</th></tr>
+                <tr><th>Rang</th><th>ID</th><th>Nom</th><th>Pseudo</th><th>Rôle</th><th>Score</th><th>Décision</th><th>Commentaire</th><th>PDF</th></tr>
               </thead>
               <tbody id="rankingBody"></tbody>
             </table>

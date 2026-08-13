@@ -94,7 +94,7 @@ button { cursor: pointer; }
 }
 .hero-card h3 { margin: 0; font-size: clamp(24px, 3vw, 42px); max-width: 870px; }
 .muted { color: var(--muted); }
-button[type=submit], .hero-card button, #quick-add, #export-csv {
+button[type=submit], .hero-card button, #quick-add, #export-csv, .secondary {
   border: none; border-radius: 14px; padding: 12px 18px;
   color: white; background: var(--valorant); font-weight: 850;
   box-shadow: 0 12px 28px rgba(255,70,85,.22);
@@ -131,7 +131,18 @@ input, select, textarea {
 }
 input:focus, select:focus, textarea:focus { border-color: var(--valorant); box-shadow: 0 0 0 4px rgba(255,70,85,.12); }
 textarea { resize: vertical; }
-form button[type=submit] { width: 100%; margin-top: 16px; }
+.form-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+form button[type=submit] { width: 100%; }
+.secondary { width: 100%; background: #334155; box-shadow: none; }
+.secondary:hover { background: #475569; }
+.pdf-link {
+  border: 1px solid rgba(255,70,85,.45);
+  background: rgba(255,70,85,.12);
+  color: #fecdd3;
+  border-radius: 10px;
+  padding: 7px 10px;
+  font-weight: 800;
+}
 .score-preview {
   display: flex; justify-content: space-between; align-items: center;
   margin-top: 14px;
@@ -182,6 +193,7 @@ canvas { width: 100%; max-width: 100%; background: #0f172a; border: 1px solid va
   .two-column, .kpi-grid, .step-grid, .criteria-grid { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 720px) {
+  .form-actions { grid-template-columns: 1fr; }
   .main { padding: 18px; }
   .topbar, .hero-card, .panel-header.row { flex-direction: column; align-items: stretch; }
   .topbar-actions, .inline-actions { flex-direction: column; align-items: stretch; }

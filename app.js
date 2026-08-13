@@ -68,7 +68,9 @@ function bindEvents() {
   $("weights-form").addEventListener("submit", saveWeights);
   Object.keys(state.weights).forEach(key => $("w" + cap(key)).addEventListener("input", updateWeightPreview));
   $("search").addEventListener("input", renderRanking);
+  $("rankingBody").addEventListener("click", event => { const btn = event.target.closest("[data-pdf-id]"); if (btn) printProfilePdf(Number(btn.dataset.pdfId)); });
   $("export-csv").addEventListener("click", exportCsv);
+  $("pdf-selected").addEventListener("click", exportSelectedProfilePdf);
   $("export-json").addEventListener("click", exportJson);
   $("import-json").addEventListener("change", importJson);
   $("radarSelect").addEventListener("change", renderRadar);
@@ -170,7 +172,8 @@ function renderRanking() {
       <td><strong>${score(c).toFixed(1)}</strong></td>
       <td><span class="badge ${badgeClass(c.decision)}">${escapeHtml(c.decision)}</span></td>
       <td>${escapeHtml(c.commentaires || "")}</td>
-    </tr>`).join("") || `<tr><td colspan="8">Aucun candidat évalué.</td></tr>`;
+      <td><button class="pdf-link" data-pdf-id="${c.id}">PDF</button></td>
+    </tr>`).join("") || `<tr><td colspan="9">Aucun candidat évalué.</td></tr>`;
 }
 function badgeClass(value = "") { return value.replace("À", "A").replace(/\s+/g, "-"); }
 function renderWeights() {
@@ -267,6 +270,161 @@ function drawText(ctx, text, x, y, size = 14, color = "#fff", align = "left", bo
 function roundRect(ctx, x, y, w, h, r) {
   ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
 }
+
+function exportSelectedProfilePdf() {
+  const id = Number($("candidateSelect").value);
+  if (!id) return toast("Sélectionne un candidat avant de générer le PDF.");
+  const c = state.candidates.find(x => x.id === id);
+  if (!c) return toast("Candidat introuvable.");
+  printProfilePdf(id);
+}
+function profileInterpretation(c) {
+  const s = score(c);
+  if (!isEvaluated(c)) return "Profil non évalué : les six notes de tryout doivent être complétées avant la décision finale.";
+  if (s >= 85) return "Profil prioritaire : candidat très solide, prêt à contribuer rapidement dans un environnement structuré.";
+  if (s >= 75) return "Profil recommandé : bonnes bases compétitives, potentiel intéressant avec un encadrement ciblé.";
+  if (s >= 60) return "Profil à développer : plusieurs qualités présentes, mais certaines zones doivent être travaillées avant un rôle majeur.";
+  return "Profil exploratoire : candidat à revoir seulement si le besoin d'équipe correspond à ses forces spécifiques.";
+}
+function strongestCategories(c) {
+  return categories
+    .map(cat => ({ label: cat.label, value: Number(c[cat.key] || 0) }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 2)
+    .filter(x => x.value > 0)
+    .map(x => `${x.label} (${x.value}/5)`)
+    .join(", ") || "Aucune donnée";
+}
+function weakestCategories(c) {
+  return categories
+    .map(cat => ({ label: cat.label, value: Number(c[cat.key] || 0) }))
+    .sort((a, b) => a.value - b.value)
+    .slice(0, 2)
+    .filter(x => x.value > 0)
+    .map(x => `${x.label} (${x.value}/5)`)
+    .join(", ") || "Aucune donnée";
+}
+function printProfilePdf(id) {
+  const c = state.candidates.find(x => x.id === id);
+  if (!c) return toast("Candidat introuvable.");
+  const today = new Date().toLocaleDateString("fr-CA", { year: "numeric", month: "long", day: "numeric" });
+  const s = score(c);
+  const categoryRows = categories.map(cat => {
+    const value = Number(c[cat.key] || 0);
+    const pct = Math.max(0, Math.min(100, value * 20));
+    return `<tr><td>${escapeHtml(cat.label)}</td><td>${value ? value + "/5" : "Non noté"}</td><td><div class="meter"><span style="width:${pct}%"></span></div></td></tr>`;
+  }).join("");
+  const html = `<!doctype html>
+<html lang="fr-CA">
+<head>
+<meta charset="utf-8" />
+<title>Profil joueur - ${escapeHtml(c.pseudo || c.nom)}</title>
+<style>
+  @page { size: Letter; margin: 0.55in; }
+  * { box-sizing: border-box; }
+  body { margin: 0; color: #111827; font-family: Segoe UI, Arial, sans-serif; background: white; }
+  .sheet { min-height: 10in; border: 1px solid #e5e7eb; border-radius: 20px; overflow: hidden; }
+  .header { display: flex; justify-content: space-between; gap: 24px; padding: 28px; color: white; background: linear-gradient(135deg, #111827, #ff4655); }
+  .eyebrow { margin: 0 0 8px; font-size: 11px; letter-spacing: .11em; text-transform: uppercase; opacity: .85; font-weight: 800; }
+  h1 { margin: 0; font-size: 34px; line-height: 1.05; }
+  .subtitle { margin: 8px 0 0; opacity: .92; }
+  .scoreBox { width: 150px; min-width: 150px; text-align: center; border: 1px solid rgba(255,255,255,.35); border-radius: 18px; padding: 14px; background: rgba(255,255,255,.12); }
+  .scoreBox strong { display: block; font-size: 36px; }
+  .content { padding: 24px 28px 28px; }
+  .grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: 18px; }
+  .card { border: 1px solid #e5e7eb; border-radius: 16px; padding: 16px; background: #fff; break-inside: avoid; }
+  .card.soft { background: #f8fafc; }
+  h2 { margin: 0 0 12px; font-size: 17px; color: #111827; }
+  .info { display: grid; grid-template-columns: 150px 1fr; gap: 7px 12px; font-size: 13px; }
+  .info b { color: #64748b; }
+  .decision { display: inline-flex; padding: 7px 11px; border-radius: 999px; background: #fee2e2; color: #b91c1c; font-weight: 900; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  td, th { padding: 8px 0; border-bottom: 1px solid #e5e7eb; text-align: left; vertical-align: middle; }
+  th { color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+  .meter { height: 10px; border-radius: 999px; background: #e5e7eb; overflow: hidden; }
+  .meter span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #ff4655, #38bdf8); }
+  .summary { padding: 16px; border-left: 5px solid #ff4655; background: #fff1f2; border-radius: 14px; line-height: 1.45; }
+  .glossary { display: grid; gap: 8px; font-size: 12.5px; color: #334155; line-height: 1.35; }
+  .footer { margin-top: 18px; display: flex; justify-content: space-between; color: #64748b; font-size: 11px; }
+  .full { grid-column: 1 / -1; }
+  @media print { .no-print { display: none; } .sheet { border: none; } }
+</style>
+</head>
+<body>
+  <div class="sheet">
+    <section class="header">
+      <div>
+        <p class="eyebrow">Rapport de recrutement Valorant</p>
+        <h1>${escapeHtml(c.pseudo || "Sans pseudo")}</h1>
+        <p class="subtitle">${escapeHtml(c.nom || "Nom non indiqué")} • ${escapeHtml(c.roleRecommande || c.roleEvalue || c.rolePrefere || "Rôle à confirmer")}</p>
+      </div>
+      <div class="scoreBox"><span>Score</span><strong>${isEvaluated(c) ? s.toFixed(1) : "-"}</strong><small>/100</small></div>
+    </section>
+    <main class="content">
+      <div class="grid">
+        <section class="card">
+          <h2>Informations du candidat</h2>
+          <div class="info">
+            <b>ID</b><span>${c.id}</span>
+            <b>Nom</b><span>${escapeHtml(c.nom || "-")}</span>
+            <b>Pseudo</b><span>${escapeHtml(c.pseudo || "-")}</span>
+            <b>Âge</b><span>${c.age || "-"}</span>
+            <b>Programme</b><span>${escapeHtml(c.programme || "-")}</span>
+            <b>Rang actuel</b><span>${escapeHtml(c.rangActuel || "-")}</span>
+            <b>Rang peak</b><span>${escapeHtml(c.rangPeak || "-")}</span>
+            <b>Rôle préféré</b><span>${escapeHtml(c.rolePrefere || "-")}</span>
+            <b>Agents principaux</b><span>${escapeHtml(c.agentsPrincipaux || "-")}</span>
+            <b>Disponibilités</b><span>${escapeHtml(c.disponibilites || "-")}</span>
+          </div>
+        </section>
+        <section class="card soft">
+          <h2>Recommandation</h2>
+          <p><span class="decision">${escapeHtml(c.decision || "À revoir")}</span></p>
+          <div class="info">
+            <b>Rôle évalué</b><span>${escapeHtml(c.roleEvalue || "-")}</span>
+            <b>Rôle recommandé</b><span>${escapeHtml(c.roleRecommande || "-")}</span>
+            <b>Priorité de développement</b><span>${escapeHtml(c.prioriteDeveloppement || "-")}</span>
+            <b>Forces principales</b><span>${escapeHtml(strongestCategories(c))}</span>
+            <b>Points à surveiller</b><span>${escapeHtml(weakestCategories(c))}</span>
+          </div>
+        </section>
+        <section class="card full">
+          <h2>Évaluation du tryout</h2>
+          <table><thead><tr><th>Catégorie</th><th>Note</th><th>Niveau visuel</th></tr></thead><tbody>${categoryRows}</tbody></table>
+        </section>
+        <section class="card full">
+          <h2>Résumé exécutif</h2>
+          <div class="summary">${escapeHtml(profileInterpretation(c))}</div>
+        </section>
+        <section class="card">
+          <h2>Contexte pour lecteur non spécialiste</h2>
+          <div class="glossary">
+            <div><b>Valorant</b> : jeu d'équipe tactique où cinq joueurs coordonnent leurs rôles, communications et décisions.</div>
+            <div><b>Rôle</b> : fonction principale du joueur dans l'équipe, par exemple ouvrir l'attaque, contrôler des zones ou protéger les flancs.</div>
+            <div><b>Agents</b> : personnages joués, chacun avec des outils différents. La maîtrise des agents influence la contribution au collectif.</div>
+            <div><b>Score /100</b> : résultat pondéré des six critères. Il sert à comparer les candidats, pas à représenter uniquement le talent mécanique.</div>
+          </div>
+        </section>
+        <section class="card">
+          <h2>Commentaires et objectif</h2>
+          <p><b>Objectif personnel :</b><br>${escapeHtml(c.objectifPersonnel || "-")}</p>
+          <p><b>Expérience compétitive :</b><br>${escapeHtml(c.experienceCompetitive || "-")}</p>
+          <p><b>Commentaires du recruteur :</b><br>${escapeHtml(c.commentaires || "-")}</p>
+        </section>
+      </div>
+      <div class="footer"><span>Généré le ${today}</span><span>Centre de recrutement Valorant collégial</span></div>
+    </main>
+  </div>
+  <script>window.onload = () => { window.print(); };</script>
+</body>
+</html>`;
+  const win = window.open("", "_blank");
+  if (!win) return toast("Le navigateur a bloqué la fenêtre PDF. Autorise les fenêtres contextuelles pour ce site.");
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+}
+
 function exportCsv() {
   const rows = [["Rang", "ID", "Nom", "Pseudo", "Role", "Score", "Decision", "Commentaire"]];
   sortedEvaluated().forEach((c, i) => rows.push([i + 1, c.id, c.nom, c.pseudo, c.roleRecommande || c.roleEvalue, score(c).toFixed(1), c.decision, c.commentaires || ""]));

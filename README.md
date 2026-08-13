@@ -23,6 +23,7 @@ Application web locale pour gérer le recrutement d'une équipe collégiale de V
 - Sauvegarde locale avec localStorage.
 - Export CSV du classement.
 - Export et import JSON de toutes les données.
+- Génération d’un profil PDF présentable pour chaque joueur, avec toutes les informations, les notes, une recommandation et un court contexte pour un lecteur qui connaît peu Valorant.
 
 ## Données
 
@@ -43,3 +44,8 @@ Pour transférer les données vers un autre ordinateur, utilise `Exporter JSON`,
 - `index.html` : structure de l'application
 - `style.css` : design responsive
 - `app.js` : logique, sauvegarde, score et graphiques
+
+
+## Profil PDF
+
+Dans `Ajouter / Évaluer`, sélectionne un candidat puis clique sur `Profil PDF du candidat`. Tu peux aussi utiliser le bouton `PDF` dans le classement. Le navigateur ouvre une page de rapport prête à imprimer. Choisis ensuite `Enregistrer au format PDF` dans la fenêtre d’impression.
