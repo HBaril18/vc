@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VALORANT • Centre de recrutement collégial</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">V</div>
+        <div>
+          <h1>VALORANT</h1>
+          <p>Centre de recrutement</p>
+        </div>
+      </div>
+
+      <nav class="nav" aria-label="Navigation principale">
+        <button class="nav-btn active" data-view="dashboard">Portail</button>
+        <button class="nav-btn" data-view="candidate">Ajouter / Évaluer</button>
+        <button class="nav-btn" data-view="ranking">Classement</button>
+        <button class="nav-btn" data-view="charts">Graphiques</button>
+        <button class="nav-btn" data-view="weights">Pondération</button>
+        <button class="nav-btn" data-view="criteria">Critères par rôle</button>
+      </nav>
+
+      <div class="sidebar-card">
+        <span class="status-dot"></span>
+        <div>
+          <strong>Données locales</strong>
+          <small>Sauvegarde dans le navigateur</small>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Équipe collégiale de Valorant</p>
+          <h2 id="view-title">Portail</h2>
+        </div>
+        <div class="topbar-actions">
+          <button class="ghost" id="export-json">Exporter JSON</button>
+          <label class="ghost file-label" for="import-json">Importer JSON</label>
+          <input type="file" id="import-json" accept="application/json" hidden />
+        </div>
+      </header>
+
+      <section class="view active" id="dashboard">
+        <div class="hero-card">
+          <div>
+            <p class="eyebrow">VALORANT • CENTRE DE RECRUTEMENT</p>
+            <h3>Ajoutez un candidat, évaluez son tryout et consultez instantanément son classement.</h3>
+            <p class="muted">Les notes de 1 à 5 alimentent un score pondéré /100, puis un classement automatique.</p>
+          </div>
+          <button id="quick-add">Créer un candidat</button>
+        </div>
+
+        <div class="kpi-grid">
+          <article class="kpi"><span>CANDIDATS</span><strong id="kpi-candidates">0</strong><small>Dossiers créés</small></article>
+          <article class="kpi"><span>ÉVALUÉS</span><strong id="kpi-evaluated">0</strong><small>Tryouts complétés</small></article>
+          <article class="kpi"><span>SCORE MOYEN</span><strong id="kpi-average">0</strong><small>Moyenne /100</small></article>
+          <article class="kpi"><span>MEILLEUR PROFIL</span><strong id="kpi-best">-</strong><small>Classement actuel</small></article>
+        </div>
+
+        <div class="step-grid">
+          <article><b>1 AJOUTER</b><h4>Liste joueurs</h4><p>Identité, rang, rôle, agents et disponibilités.</p></article>
+          <article><b>2 ÉVALUER</b><h4>Suivi évaluations</h4><p>Six notes de 1 à 5, décision et commentaire.</p></article>
+          <article><b>3 COMPARER</b><h4>Classement</h4><p>Priorisation automatique des meilleurs profils.</p></article>
+          <article><b>4 CONSULTER</b><h4>Graphiques</h4><p>Scores globaux, radar individuel et moyenne équipe.</p></article>
+        </div>
+      </section>
+
+      <section class="view" id="candidate">
+        <div class="two-column">
+          <form class="panel" id="candidate-form">
+            <div class="panel-header">
+              <h3>Nouveau candidat</h3>
+              <p>Remplis les champs principaux du dossier joueur.</p>
+            </div>
+            <div class="form-grid">
+              <label>Nom *<input id="nom" required /></label>
+              <label>Pseudo *<input id="pseudo" required /></label>
+              <label>Âge<input id="age" type="number" min="0" max="99" /></label>
+              <label>Programme<input id="programme" /></label>
+              <label>Rang actuel<input id="rangActuel" placeholder="Ex. Platine 2" /></label>
+              <label>Rang peak<input id="rangPeak" placeholder="Ex. Diamant 1" /></label>
+              <label>Rôle préféré<select id="rolePrefere"></select></label>
+              <label>Agents principaux<input id="agentsPrincipaux" placeholder="Ex. Omen, Killjoy" /></label>
+              <label class="wide">Disponibilités<input id="disponibilites" placeholder="Ex. Lun/Mer 18h-21h" /></label>
+              <label class="wide">Expérience compétitive<input id="experienceCompetitive" /></label>
+              <label class="wide">Objectif personnel<input id="objectifPersonnel" /></label>
+            </div>
+            <button type="submit">Ajouter le candidat</button>
+          </form>
+
+          <form class="panel" id="evaluation-form">
+            <div class="panel-header">
+              <h3>Tryout • Évaluation rapide</h3>
+              <p>Choisis un candidat et entre les six notes obligatoires.</p>
+            </div>
+            <div class="form-grid">
+              <label class="wide">Candidat<select id="candidateSelect"></select></label>
+              <label>Rôle évalué<select id="roleEvalue"></select></label>
+              <label>Décision<select id="decision"></select></label>
+              <label>Mécanique *<input id="mecanique" type="number" min="1" max="5" required /></label>
+              <label>Intelligence de jeu *<input id="intelligence" type="number" min="1" max="5" required /></label>
+              <label>Utilitaires et rôle *<input id="utilitaires" type="number" min="1" max="5" required /></label>
+              <label>Communication *<input id="communication" type="number" min="1" max="5" required /></label>
+              <label>Mentalité *<input id="mentalite" type="number" min="1" max="5" required /></label>
+              <label>Adaptabilité / potentiel *<input id="adaptabilite" type="number" min="1" max="5" required /></label>
+              <label>Rôle recommandé<select id="roleRecommande"></select></label>
+              <label>Priorité de développement<input id="prioriteDeveloppement" placeholder="Ex. Communication mid-round" /></label>
+              <label class="wide">Commentaires<textarea id="commentaires" rows="4"></textarea></label>
+            </div>
+            <div class="score-preview">
+              <span>Score actuel</span>
+              <strong id="scorePreview">0 / 100</strong>
+            </div>
+            <button type="submit">Sauvegarder l'évaluation</button>
+          </form>
+        </div>
+      </section>
+
+      <section class="view" id="ranking">
+        <div class="panel">
+          <div class="panel-header row">
+            <div>
+              <h3>Classement • Priorité de recrutement</h3>
+              <p>Les candidats évalués sont triés par score pondéré.</p>
+            </div>
+            <div class="inline-actions">
+              <input id="search" placeholder="Rechercher nom, pseudo, rôle..." />
+              <button id="export-csv">Exporter CSV</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Rang</th><th>ID</th><th>Nom</th><th>Pseudo</th><th>Rôle</th><th>Score</th><th>Décision</th><th>Commentaire</th></tr>
+              </thead>
+              <tbody id="rankingBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="charts">
+        <div class="two-column charts-grid">
+          <div class="panel">
+            <div class="panel-header"><h3>Top 10 • Score /100</h3><p>Comparaison rapide des meilleurs candidats.</p></div>
+            <canvas id="barCanvas" width="700" height="400"></canvas>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><h3 id="radarTitle">Profil radar</h3><p>Sélectionne un candidat pour voir ses forces et faiblesses.</p></div>
+            <select id="radarSelect"></select>
+            <canvas id="radarCanvas" width="700" height="430"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="weights">
+        <div class="panel narrow">
+          <div class="panel-header"><h3>Pondération</h3><p>Le total idéal est 1.00. Si le total diffère, le calcul est normalisé.</p></div>
+          <form id="weights-form" class="weight-list">
+            <label>Mécanique<input id="wMecanique" type="number" min="0" max="1" step="0.01" /></label>
+            <label>Intelligence de jeu<input id="wIntelligence" type="number" min="0" max="1" step="0.01" /></label>
+            <label>Utilitaires et rôle<input id="wUtilitaires" type="number" min="0" max="1" step="0.01" /></label>
+            <label>Communication<input id="wCommunication" type="number" min="0" max="1" step="0.01" /></label>
+            <label>Mentalité<input id="wMentalite" type="number" min="0" max="1" step="0.01" /></label>
+            <label>Adaptabilité / potentiel<input id="wAdaptabilite" type="number" min="0" max="1" step="0.01" /></label>
+            <div class="score-preview"><span>Total</span><strong id="weightTotal">1.00</strong></div>
+            <button type="submit">Appliquer la pondération</button>
+          </form>
+        </div>
+      </section>
+
+      <section class="view" id="criteria">
+        <div class="criteria-grid" id="criteriaGrid"></div>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
