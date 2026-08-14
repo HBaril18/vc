@@ -23,7 +23,6 @@ Application web locale pour gérer le recrutement d'une équipe collégiale de V
 - Sauvegarde locale avec localStorage.
 - Export CSV du classement.
 - Export et import JSON de toutes les données.
-- Génération d’un profil PDF présentable pour chaque joueur, avec toutes les informations, les notes, une recommandation et un court contexte pour un lecteur qui connaît peu Valorant.
 
 ## Données
 
@@ -48,4 +47,23 @@ Pour transférer les données vers un autre ordinateur, utilise `Exporter JSON`,
 
 ## Profil PDF
 
-Dans `Ajouter / Évaluer`, sélectionne un candidat puis clique sur `Profil PDF du candidat`. Tu peux aussi utiliser le bouton `PDF` dans le classement. Le navigateur ouvre une page de rapport prête à imprimer. Choisis ensuite `Enregistrer au format PDF` dans la fenêtre d’impression.
+Dans `Ajouter / Évaluer`, sélectionne un candidat puis clique sur `Profil PDF du candidat`. Tu peux aussi utiliser le bouton `PDF` dans le classement. Le navigateur ouvrira la fenêtre d’impression. Choisis `Enregistrer au format PDF`.
+
+
+## Correction PDF
+
+La génération PDF utilise maintenant l’impression de la page courante au lieu d’ouvrir une nouvelle fenêtre. Cela évite les bloqueurs de popups.
+
+
+## VOD Review
+
+Nouvelle section pour documenter les analyses individuelles : joueur, date, map, type de VOD, lien vidéo, contexte, forces, erreurs, plan d’action, priorité et coach responsable. Les dernières VOD liées au joueur apparaissent aussi dans son profil PDF.
+
+## Scrims
+
+Nouvelle section pour suivre les pratiques d’équipe : adversaire, map, score, joueurs présents, composition, objectif, constats attaque/défense, communication, actions à faire et note d’équipe. Les scrims où le pseudo du joueur est inscrit dans `Joueurs présents` peuvent aussi apparaître dans son profil PDF.
+
+
+## Planification pratique
+
+Nouvelle section inspirée d’une planification de cours du secondaire pour créer des séances d’environ 2 heures. Elle contient : titre, date, heure, durée, map, focus, participants, intention pédagogique, objectifs d’apprentissage, critères de réussite, matériel, déroulement minuté, adaptations, évaluation formative, notes coach, statut et impression PDF du plan de séance.

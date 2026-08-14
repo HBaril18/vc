@@ -22,6 +22,9 @@
         <button class="nav-btn" data-view="candidate">Ajouter / Évaluer</button>
         <button class="nav-btn" data-view="ranking">Classement</button>
         <button class="nav-btn" data-view="charts">Graphiques</button>
+        <button class="nav-btn" data-view="vod">VOD Review</button>
+        <button class="nav-btn" data-view="scrims">Scrims</button>
+        <button class="nav-btn" data-view="practice">Planification pratique</button>
         <button class="nav-btn" data-view="weights">Pondération</button>
         <button class="nav-btn" data-view="criteria">Critères par rôle</button>
       </nav>
@@ -164,6 +167,133 @@
         </div>
       </section>
 
+
+      <section class="view" id="vod">
+        <div class="two-column">
+          <form class="panel" id="vod-form">
+            <div class="panel-header">
+              <h3>VOD Review • Analyse individuelle</h3>
+              <p>Documente une vidéo ou un match revu avec un candidat. L’objectif est de transformer l’observation en plan d’action concret.</p>
+            </div>
+            <div class="form-grid">
+              <label>Candidat<select id="vodCandidate"></select></label>
+              <label>Date<input id="vodDate" type="date" /></label>
+              <label>Map<input id="vodMap" placeholder="Ex. Ascent" /></label>
+              <label>Type de VOD<select id="vodType"><option>Tryout</option><option>Scrim</option><option>Match officiel</option><option>Ranked</option><option>Autre</option></select></label>
+              <label class="wide">Lien vidéo / source<input id="vodLink" placeholder="YouTube, Twitch, Drive, OBS, etc." /></label>
+              <label class="wide">Contexte des rounds observés<textarea id="vodContext" rows="3" placeholder="Ex. Attaque Ascent, rounds pistol et bonus, défense B..."></textarea></label>
+              <label class="wide">Points forts observés<textarea id="vodStrengths" rows="3"></textarea></label>
+              <label class="wide">Erreurs ou habitudes à corriger<textarea id="vodMistakes" rows="3"></textarea></label>
+              <label class="wide">Plan d’action recommandé<textarea id="vodActionPlan" rows="3" placeholder="Ex. travailler les timings de smoke, demander info plus tôt, revoir post-plant..."></textarea></label>
+              <label>Priorité<select id="vodPriority"><option>1 - Faible</option><option>2</option><option>3 - Moyenne</option><option>4</option><option>5 - Urgente</option></select></label>
+              <label>Responsable / coach<input id="vodCoach" /></label>
+            </div>
+            <button type="submit">Ajouter la VOD review</button>
+          </form>
+          <div class="panel">
+            <div class="panel-header">
+              <h3>Historique VOD</h3>
+              <p>Filtre par joueur pour suivre l’évolution de ses apprentissages.</p>
+            </div>
+            <div class="inline-actions adapted-actions">
+              <select id="vodFilter"></select>
+              <button class="secondary" id="clear-vod-filter" type="button">Tous les joueurs</button>
+            </div>
+            <div class="review-list" id="vodList"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="scrims">
+        <div class="two-column">
+          <form class="panel" id="scrim-form">
+            <div class="panel-header">
+              <h3>Scrims • Suivi d’équipe</h3>
+              <p>Consigne les blocs de pratique, les objectifs, les constats et les suivis pour la prochaine séance.</p>
+            </div>
+            <div class="form-grid">
+              <label>Date<input id="scrimDate" type="date" /></label>
+              <label>Adversaire<input id="scrimOpponent" placeholder="Nom de l’équipe" /></label>
+              <label>Map<input id="scrimMap" placeholder="Ex. Haven" /></label>
+              <label>Résultat / score<input id="scrimScore" placeholder="Ex. 13-9 ou 8-13" /></label>
+              <label class="wide">Joueurs présents<input id="scrimPlayers" placeholder="Pseudos séparés par des virgules" /></label>
+              <label class="wide">Composition / rôles<input id="scrimComp" placeholder="Ex. Jett, Sova, Omen, Killjoy, KAY/O" /></label>
+              <label class="wide">Objectif de la scrim<textarea id="scrimObjective" rows="3" placeholder="Ex. travailler les exec A, les retakes B, les communications mid-round..."></textarea></label>
+              <label class="wide">Constats attaque<textarea id="scrimAttack" rows="3"></textarea></label>
+              <label class="wide">Constats défense<textarea id="scrimDefense" rows="3"></textarea></label>
+              <label class="wide">Communication et mental<textarea id="scrimComms" rows="3"></textarea></label>
+              <label class="wide">Actions à faire avant la prochaine scrim<textarea id="scrimNext" rows="3"></textarea></label>
+              <label>Note d’équipe /5<input id="scrimRating" type="number" min="1" max="5" /></label>
+              <label>Coach responsable<input id="scrimCoach" /></label>
+            </div>
+            <button type="submit">Ajouter la scrim</button>
+          </form>
+          <div class="panel">
+            <div class="panel-header">
+              <h3>Historique des scrims</h3>
+              <p>Vue simple pour repérer les tendances d’équipe et les suivis à exécuter.</p>
+            </div>
+            <div class="scrim-summary" id="scrimSummary"></div>
+            <div class="review-list" id="scrimList"></div>
+          </div>
+        </div>
+      </section>
+
+
+      <section class="view" id="practice">
+        <div class="two-column practice-layout">
+          <form class="panel" id="practice-form">
+            <div class="panel-header">
+              <h3>Planification pédagogique • Session de pratique 2 h</h3>
+              <p>Construit une séance comme une planification de cours : intention, objectifs mesurables, déroulement minuté, adaptations et traces d’évaluation.</p>
+            </div>
+            <div class="form-grid">
+              <label>Titre de la séance *<input id="practiceTitle" required placeholder="Ex. Défense Haven : communication et retakes" /></label>
+              <label>Date<input id="practiceDate" type="date" /></label>
+              <label>Heure de début<input id="practiceStart" type="time" /></label>
+              <label>Durée prévue<input id="practiceDuration" type="number" min="60" max="180" value="120" /></label>
+              <label>Map principale<input id="practiceMap" placeholder="Ex. Haven" /></label>
+              <label>Focus<select id="practiceFocus"><option>Communication</option><option>Stratégie d’équipe</option><option>Mécanique</option><option>Utilitaires</option><option>Retakes</option><option>Post-plant</option><option>Économie</option><option>Préparation match</option></select></label>
+              <label class="wide">Participants ciblés<input id="practicePlayers" placeholder="Toute l’équipe ou pseudos séparés par des virgules" /></label>
+              <label class="wide">Intention pédagogique<textarea id="practiceIntent" rows="3" placeholder="Ce que la séance cherche à développer chez les joueurs."></textarea></label>
+              <label class="wide">Objectifs d’apprentissage<textarea id="practiceObjectives" rows="4" placeholder="Ex. À la fin de la séance, les joueurs seront capables de communiquer une prise d’info en moins de 3 secondes..."></textarea></label>
+              <label class="wide">Critères de réussite observables<textarea id="practiceSuccess" rows="3" placeholder="Ex. calls courts, utilitaires coordonnés, retake annoncé, décision commune..."></textarea></label>
+              <label class="wide">Matériel / préparation<textarea id="practiceMaterial" rows="2" placeholder="Serveur custom, VOD, composition, agents, notes coach, tableaux de setups..."></textarea></label>
+            </div>
+
+            <div class="lesson-blocks">
+              <h4>Déroulement recommandé, environ 120 minutes</h4>
+              <div class="lesson-row"><input id="block1Min" type="number" value="10" min="0" /><textarea id="block1Text" rows="2">Accueil, rappel de l’objectif, lien avec la dernière scrim ou VOD.</textarea></div>
+              <div class="lesson-row"><input id="block2Min" type="number" value="15" min="0" /><textarea id="block2Text" rows="2">Activation : échauffement ciblé ou mini-défi mécanique relié au thème.</textarea></div>
+              <div class="lesson-row"><input id="block3Min" type="number" value="15" min="0" /><textarea id="block3Text" rows="2">Enseignement explicite : modèle, principe tactique, vocabulaire commun et attentes.</textarea></div>
+              <div class="lesson-row"><input id="block4Min" type="number" value="30" min="0" /><textarea id="block4Text" rows="2">Pratique guidée : drill en custom, répétitions de setup, utilitaires ou retakes.</textarea></div>
+              <div class="lesson-row"><input id="block5Min" type="number" value="35" min="0" /><textarea id="block5Text" rows="2">Mise en situation : scrim partielle, rounds thématiques ou scénarios imposés.</textarea></div>
+              <div class="lesson-row"><input id="block6Min" type="number" value="10" min="0" /><textarea id="block6Text" rows="2">Retour réflexif : ce qui a fonctionné, points à corriger, engagement pour la prochaine pratique.</textarea></div>
+              <div class="lesson-row"><input id="block7Min" type="number" value="5" min="0" /><textarea id="block7Text" rows="2">Trace / devoir : VOD à revoir, notes individuelles ou objectif personnel.</textarea></div>
+            </div>
+
+            <div class="form-grid">
+              <label class="wide">Adaptations / différenciation<textarea id="practiceAdaptations" rows="3" placeholder="Prévoir variantes pour recrues, titulaires, rôles spécifiques ou joueurs absents."></textarea></label>
+              <label class="wide">Évaluation formative<textarea id="practiceAssessment" rows="3" placeholder="Comment le coach vérifiera la progression : checklist, observation, mini-débrief, statistiques..."></textarea></label>
+              <label class="wide">Notes privées du coach<textarea id="practiceCoachNotes" rows="3"></textarea></label>
+              <label>Statut<select id="practiceStatus"><option>Planifiée</option><option>À ajuster</option><option>Complétée</option><option>Annulée</option></select></label>
+              <label>Coach responsable<input id="practiceCoach" /></label>
+            </div>
+            <div class="score-preview"><span>Total du déroulement</span><strong id="practiceTotal">120 min</strong></div>
+            <button type="submit">Ajouter la séance de pratique</button>
+          </form>
+
+          <div class="panel">
+            <div class="panel-header">
+              <h3>Calendrier des pratiques</h3>
+              <p>Les séances sont triées par date. Chaque plan peut être imprimé en PDF pour partage avec un responsable.</p>
+            </div>
+            <div class="practice-summary" id="practiceSummary"></div>
+            <div class="review-list" id="practiceList"></div>
+          </div>
+        </div>
+      </section>
+
       <section class="view" id="weights">
         <div class="panel narrow">
           <div class="panel-header"><h3>Pondération</h3><p>Le total idéal est 1.00. Si le total diffère, le calcul est normalisé.</p></div>
@@ -187,6 +317,7 @@
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div id="print-root" aria-hidden="true"></div>
   <script src="app.js"></script>
 </body>
 </html>

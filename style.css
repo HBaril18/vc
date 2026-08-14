@@ -135,14 +135,7 @@ textarea { resize: vertical; }
 form button[type=submit] { width: 100%; }
 .secondary { width: 100%; background: #334155; box-shadow: none; }
 .secondary:hover { background: #475569; }
-.pdf-link {
-  border: 1px solid rgba(255,70,85,.45);
-  background: rgba(255,70,85,.12);
-  color: #fecdd3;
-  border-radius: 10px;
-  padding: 7px 10px;
-  font-weight: 800;
-}
+.pdf-link { border: 1px solid rgba(255,70,85,.45); background: rgba(255,70,85,.12); color: #fecdd3; border-radius: 10px; padding: 7px 10px; font-weight: 800; }
 .score-preview {
   display: flex; justify-content: space-between; align-items: center;
   margin-top: 14px;
@@ -193,10 +186,88 @@ canvas { width: 100%; max-width: 100%; background: #0f172a; border: 1px solid va
   .two-column, .kpi-grid, .step-grid, .criteria-grid { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 720px) {
-  .form-actions { grid-template-columns: 1fr; }
   .main { padding: 18px; }
   .topbar, .hero-card, .panel-header.row { flex-direction: column; align-items: stretch; }
   .topbar-actions, .inline-actions { flex-direction: column; align-items: stretch; }
   .nav, .two-column, .kpi-grid, .step-grid, .criteria-grid, .form-grid { grid-template-columns: 1fr; }
   .wide { grid-column: auto; }
 }
+
+
+/* Printable PDF profile */
+#print-root { display: none; }
+.print-report { color: #111827; background: white; font-family: Segoe UI, Arial, sans-serif; }
+.print-sheet { border: 1px solid #e5e7eb; border-radius: 20px; overflow: hidden; background: #fff; }
+.print-header { display: flex; justify-content: space-between; gap: 24px; padding: 28px; color: white; background: linear-gradient(135deg, #111827, #ff4655); }
+.print-eyebrow { margin: 0 0 8px; font-size: 11px; letter-spacing: .11em; text-transform: uppercase; opacity: .86; font-weight: 800; }
+.print-header h1 { margin: 0; font-size: 34px; line-height: 1.05; }
+.print-subtitle { margin: 8px 0 0; opacity: .92; }
+.print-score { width: 150px; min-width: 150px; text-align: center; border: 1px solid rgba(255,255,255,.35); border-radius: 18px; padding: 14px; background: rgba(255,255,255,.12); }
+.print-score strong { display: block; font-size: 36px; }
+.print-content { padding: 24px 28px 28px; }
+.print-grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: 18px; }
+.print-card { border: 1px solid #e5e7eb; border-radius: 16px; padding: 16px; background: #fff; break-inside: avoid; page-break-inside: avoid; }
+.print-card.soft { background: #f8fafc; }
+.print-card.full { grid-column: 1 / -1; }
+.print-card h2 { margin: 0 0 12px; font-size: 17px; color: #111827; }
+.print-info { display: grid; grid-template-columns: 150px 1fr; gap: 7px 12px; font-size: 13px; }
+.print-info b { color: #64748b; }
+.print-decision { display: inline-flex; padding: 7px 11px; border-radius: 999px; background: #fee2e2; color: #b91c1c; font-weight: 900; }
+.print-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.print-table td, .print-table th { padding: 8px 0; border-bottom: 1px solid #e5e7eb; text-align: left; vertical-align: middle; }
+.print-table th { color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+.print-meter { height: 10px; border-radius: 999px; background: #e5e7eb; overflow: hidden; }
+.print-meter span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #ff4655, #38bdf8); }
+.print-summary { padding: 16px; border-left: 5px solid #ff4655; background: #fff1f2; border-radius: 14px; line-height: 1.45; }
+.print-glossary { display: grid; gap: 8px; font-size: 12.5px; color: #334155; line-height: 1.35; }
+.print-footer { margin-top: 18px; display: flex; justify-content: space-between; color: #64748b; font-size: 11px; }
+@media print {
+  @page { size: Letter; margin: 0.55in; }
+  body { background: white !important; }
+  .app-shell, .toast { display: none !important; }
+  #print-root { display: block !important; }
+  .print-sheet { border: none; border-radius: 0; }
+}
+
+
+/* VOD Reviews and Scrims */
+.adapted-actions { margin-bottom: 14px; }
+.review-list { display: grid; gap: 12px; max-height: 690px; overflow: auto; padding-right: 4px; }
+.review-card { border: 1px solid var(--line); border-radius: 16px; padding: 14px; background: rgba(15, 23, 42, .78); }
+.review-card header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+.review-card h4 { margin: 0; font-size: 16px; }
+.review-card p { margin: 7px 0 0; color: #cbd5e1; line-height: 1.45; }
+.review-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.review-chip { display: inline-flex; align-items: center; border-radius: 999px; padding: 5px 9px; background: rgba(56,189,248,.12); color: #bae6fd; font-size: 12px; font-weight: 800; }
+.review-chip.danger { background: rgba(255,70,85,.13); color: #fecdd3; }
+.review-chip.green { background: rgba(34,197,94,.13); color: #bbf7d0; }
+.review-actions { display: flex; gap: 8px; margin-top: 12px; }
+.review-actions button { border: 1px solid var(--line); background: rgba(17,24,39,.86); color: var(--text); border-radius: 10px; padding: 7px 10px; font-weight: 800; }
+.empty-state { border: 1px dashed #475569; border-radius: 16px; padding: 18px; color: var(--muted); text-align: center; }
+.scrim-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+.scrim-summary article { border: 1px solid var(--line); border-radius: 14px; padding: 12px; background: rgba(8,47,73,.22); }
+.scrim-summary strong { display: block; font-size: 22px; color: var(--cyan); }
+@media (max-width: 720px) { .scrim-summary { grid-template-columns: 1fr; } }
+@media print {
+  .print-section-list { display: grid; gap: 8px; }
+  .print-mini { border: 1px solid #e5e7eb; border-radius: 12px; padding: 10px; background: #f8fafc; font-size: 12.5px; }
+  .print-mini b { color: #334155; }
+}
+
+
+/* Practice planning */
+.practice-layout .panel:first-child { min-width: 0; }
+.lesson-blocks { margin-top: 18px; border: 1px solid var(--line); border-radius: 18px; padding: 14px; background: rgba(15,23,42,.6); }
+.lesson-blocks h4 { margin: 0 0 12px; color: #f8fafc; }
+.lesson-row { display: grid; grid-template-columns: 82px 1fr; gap: 10px; margin-bottom: 10px; align-items: start; }
+.lesson-row input { text-align: center; font-weight: 900; color: var(--cyan); }
+.practice-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+.practice-summary article { border: 1px solid var(--line); border-radius: 14px; padding: 12px; background: rgba(255,70,85,.09); }
+.practice-summary strong { display: block; font-size: 22px; color: #fecdd3; }
+.practice-status { background: rgba(245,158,11,.15); color: #fcd34d; }
+.practice-print-root { display: none; }
+.print-lesson-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.print-lesson-table th, .print-lesson-table td { border-bottom: 1px solid #e5e7eb; padding: 8px; vertical-align: top; text-align: left; }
+.print-lesson-table th { color: #475569; text-transform: uppercase; font-size: 11px; letter-spacing: .05em; }
+@media (max-width: 720px) { .lesson-row, .practice-summary { grid-template-columns: 1fr; } }
+@media print { .practice-print-root { display: block !important; } }

@@ -17,6 +17,9 @@ const criteria = {
 };
 const defaultState = {
   weights: { mecanique: .20, intelligence: .20, utilitaires: .20, communication: .15, mentalite: .15, adaptabilite: .10 },
+  vodReviews: [],
+  scrims: [],
+  practicePlans: [],
   candidates: [
     { id: 1, nom: "Henrick", pseudo: "Xeno", age: 23, programme: "", rangActuel: "", rangPeak: "", rolePrefere: "Controller", agentsPrincipaux: "", disponibilites: "", experienceCompetitive: "", objectifPersonnel: "", roleEvalue: "Controller", mecanique: 5, intelligence: 4, utilitaires: 3, communication: 2, mentalite: 1, adaptabilite: 5, decision: "Titulaire", roleRecommande: "Controller", prioriteDeveloppement: "", commentaires: "" },
     { id: 2, nom: "Gabriel", pseudo: "Ekoh", age: 27, programme: "", rangActuel: "", rangPeak: "", rolePrefere: "Sentinel", agentsPrincipaux: "", disponibilites: "", experienceCompetitive: "", objectifPersonnel: "", roleEvalue: "Sentinel", mecanique: 4, intelligence: 4, utilitaires: 4, communication: 4, mentalite: 4, adaptabilite: 4, decision: "Titulaire", roleRecommande: "Duelist", prioriteDeveloppement: "", commentaires: "" }
@@ -26,7 +29,12 @@ let state = loadState();
 
 function $(id) { return document.getElementById(id); }
 function loadState() {
-  try { return JSON.parse(localStorage.getItem("valorantRecruitmentState")) || structuredClone(defaultState); }
+  try {
+    const saved = JSON.parse(localStorage.getItem("valorantRecruitmentState"));
+    const base = structuredClone(defaultState);
+    if (!saved) return base;
+    return { ...base, ...saved, weights: { ...base.weights, ...(saved.weights || {}) }, candidates: saved.candidates || [], vodReviews: saved.vodReviews || [], scrims: saved.scrims || [], practicePlans: saved.practicePlans || [] };
+  }
   catch { return structuredClone(defaultState); }
 }
 function saveState() { localStorage.setItem("valorantRecruitmentState", JSON.stringify(state)); }
@@ -74,11 +82,20 @@ function bindEvents() {
   $("export-json").addEventListener("click", exportJson);
   $("import-json").addEventListener("change", importJson);
   $("radarSelect").addEventListener("change", renderRadar);
+  $("vod-form").addEventListener("submit", addVodReview);
+  $("scrim-form").addEventListener("submit", addScrim);
+  $("vodFilter").addEventListener("change", renderVodReviews);
+  $("clear-vod-filter").addEventListener("click", () => { $("vodFilter").value = "all"; renderVodReviews(); });
+  $("vodList").addEventListener("click", event => { const btn = event.target.closest("[data-delete-vod]"); if (btn) deleteVodReview(Number(btn.dataset.deleteVod)); });
+  $("scrimList").addEventListener("click", event => { const btn = event.target.closest("[data-delete-scrim]"); if (btn) deleteScrim(Number(btn.dataset.deleteScrim)); });
+  $("practice-form").addEventListener("submit", addPracticePlan);
+  [1,2,3,4,5,6,7].forEach(i => $("block" + i + "Min").addEventListener("input", updatePracticeTotal));
+  $("practiceList").addEventListener("click", event => { const del = event.target.closest("[data-delete-practice]"); const prt = event.target.closest("[data-print-practice]"); if (del) deletePracticePlan(Number(del.dataset.deletePractice)); if (prt) printPracticePlan(Number(prt.dataset.printPractice)); });
 }
 function showView(id) {
   document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === id));
   document.querySelectorAll(".nav-btn").forEach(b => b.classList.toggle("active", b.dataset.view === id));
-  const titles = { dashboard: "Portail", candidate: "Ajouter / Évaluer", ranking: "Classement", charts: "Graphiques", weights: "Pondération", criteria: "Critères par rôle" };
+  const titles = { dashboard: "Portail", candidate: "Ajouter / Évaluer", ranking: "Classement", charts: "Graphiques", weights: "Pondération", vod: "VOD Review", scrims: "Scrims", practice: "Planification pratique", criteria: "Critères par rôle" };
   $("view-title").textContent = titles[id] || "Portail";
   if (id === "charts") drawCharts();
 }
@@ -142,6 +159,11 @@ function renderAll() {
   renderRanking();
   renderWeights();
   renderRadarSelect();
+  renderVodCandidateSelects();
+  renderVodReviews();
+  renderScrims();
+  renderPracticePlans();
+  updatePracticeTotal();
   drawCharts();
 }
 function renderKpis() {
@@ -200,6 +222,144 @@ function renderCriteria() {
   $("criteriaGrid").innerHTML = Object.entries(criteria).map(([role, items]) => `
     <article class="criteria-card"><h3>${escapeHtml(role)}</h3><ul>${items.map(i => `<li>${escapeHtml(i)}</li>`).join("")}</ul></article>
   `).join("");
+}
+
+
+function todayInputValue() { return new Date().toISOString().slice(0, 10); }
+function candidateLabelById(id) {
+  const c = state.candidates.find(x => x.id === Number(id));
+  return c ? `${c.pseudo} (${c.nom})` : "Candidat supprimé";
+}
+function renderVodCandidateSelects() {
+  const candidateOptions = state.candidates.map(c => `<option value="${c.id}">${escapeHtml(c.pseudo)} (${escapeHtml(c.nom)})</option>`).join("");
+  $("vodCandidate").innerHTML = candidateOptions || `<option value="">Aucun candidat</option>`;
+  $("vodFilter").innerHTML = `<option value="all">Tous les joueurs</option>` + candidateOptions;
+  if (!$("vodDate").value) $("vodDate").value = todayInputValue();
+  if (!$("scrimDate").value) $("scrimDate").value = todayInputValue();
+}
+function nextReviewId(items) { return items.reduce((max, item) => Math.max(max, item.id || 0), 0) + 1; }
+function addVodReview(event) {
+  event.preventDefault();
+  const candidateId = Number($("vodCandidate").value);
+  if (!candidateId) return toast("Ajoute ou sélectionne un candidat avant la VOD review.");
+  const review = {
+    id: nextReviewId(state.vodReviews), candidateId, date: $("vodDate").value || todayInputValue(), map: $("vodMap").value.trim(), type: $("vodType").value,
+    link: $("vodLink").value.trim(), context: $("vodContext").value.trim(), strengths: $("vodStrengths").value.trim(), mistakes: $("vodMistakes").value.trim(),
+    actionPlan: $("vodActionPlan").value.trim(), priority: $("vodPriority").value, coach: $("vodCoach").value.trim()
+  };
+  state.vodReviews.push(review); saveState(); event.target.reset(); $("vodDate").value = todayInputValue(); renderAll(); toast("VOD review ajoutée.");
+}
+function renderVodReviews() {
+  const filter = $("vodFilter")?.value || "all";
+  let reviews = [...(state.vodReviews || [])].sort((a, b) => String(b.date).localeCompare(String(a.date)) || b.id - a.id);
+  if (filter !== "all") reviews = reviews.filter(r => String(r.candidateId) === String(filter));
+  $("vodList").innerHTML = reviews.map(r => `
+    <article class="review-card">
+      <header><div><h4>${escapeHtml(candidateLabelById(r.candidateId))}</h4><p>${escapeHtml(r.context || "Aucun contexte ajouté.")}</p></div><span class="review-chip danger">${escapeHtml(r.priority || "Priorité")}</span></header>
+      <div class="review-meta"><span class="review-chip">${escapeHtml(r.date || "-")}</span><span class="review-chip">${escapeHtml(r.map || "Map non indiquée")}</span><span class="review-chip green">${escapeHtml(r.type || "VOD")}</span>${r.link ? `<span class="review-chip">Lien ajouté</span>` : ""}</div>
+      <p><b>Points forts :</b> ${escapeHtml(r.strengths || "-")}</p>
+      <p><b>À corriger :</b> ${escapeHtml(r.mistakes || "-")}</p>
+      <p><b>Plan d’action :</b> ${escapeHtml(r.actionPlan || "-")}</p>
+      <div class="review-actions"><button type="button" data-delete-vod="${r.id}">Supprimer</button>${r.link ? `<button type="button" onclick="window.open('${escapeHtml(r.link)}','_blank')">Ouvrir le lien</button>` : ""}</div>
+    </article>`).join("") || `<div class="empty-state">Aucune VOD review pour ce filtre.</div>`;
+}
+function deleteVodReview(id) {
+  state.vodReviews = state.vodReviews.filter(r => r.id !== id); saveState(); renderAll(); toast("VOD review supprimée.");
+}
+function addScrim(event) {
+  event.preventDefault();
+  const scrim = {
+    id: nextReviewId(state.scrims), date: $("scrimDate").value || todayInputValue(), opponent: $("scrimOpponent").value.trim(), map: $("scrimMap").value.trim(), score: $("scrimScore").value.trim(),
+    players: $("scrimPlayers").value.trim(), comp: $("scrimComp").value.trim(), objective: $("scrimObjective").value.trim(), attack: $("scrimAttack").value.trim(), defense: $("scrimDefense").value.trim(),
+    comms: $("scrimComms").value.trim(), next: $("scrimNext").value.trim(), rating: Number($("scrimRating").value || 0), coach: $("scrimCoach").value.trim()
+  };
+  if (!scrim.opponent && !scrim.map && !scrim.objective) return toast("Ajoute au moins un adversaire, une map ou un objectif.");
+  state.scrims.push(scrim); saveState(); event.target.reset(); $("scrimDate").value = todayInputValue(); renderAll(); toast("Scrim ajoutée.");
+}
+function renderScrims() {
+  const scrims = [...(state.scrims || [])].sort((a, b) => String(b.date).localeCompare(String(a.date)) || b.id - a.id);
+  const avg = scrims.length ? scrims.reduce((sum, s) => sum + Number(s.rating || 0), 0) / scrims.filter(s => s.rating).length : 0;
+  const rated = scrims.filter(s => s.rating).length;
+  $("scrimSummary").innerHTML = `<article><span>Total</span><strong>${scrims.length}</strong></article><article><span>Note moyenne</span><strong>${rated ? avg.toFixed(1) : "-"}</strong></article><article><span>Dernière map</span><strong>${escapeHtml(scrims[0]?.map || "-")}</strong></article>`;
+  $("scrimList").innerHTML = scrims.map(s => `
+    <article class="review-card">
+      <header><div><h4>${escapeHtml(s.opponent || "Adversaire non indiqué")} • ${escapeHtml(s.map || "Map non indiquée")}</h4><p>${escapeHtml(s.objective || "Aucun objectif ajouté.")}</p></div><span class="review-chip danger">${s.rating ? s.rating + "/5" : "Non noté"}</span></header>
+      <div class="review-meta"><span class="review-chip">${escapeHtml(s.date || "-")}</span><span class="review-chip">Score : ${escapeHtml(s.score || "-")}</span><span class="review-chip green">Coach : ${escapeHtml(s.coach || "-")}</span></div>
+      <p><b>Joueurs :</b> ${escapeHtml(s.players || "-")}</p>
+      <p><b>Composition :</b> ${escapeHtml(s.comp || "-")}</p>
+      <p><b>Attaque :</b> ${escapeHtml(s.attack || "-")}</p>
+      <p><b>Défense :</b> ${escapeHtml(s.defense || "-")}</p>
+      <p><b>Communication / mental :</b> ${escapeHtml(s.comms || "-")}</p>
+      <p><b>Prochaine étape :</b> ${escapeHtml(s.next || "-")}</p>
+      <div class="review-actions"><button type="button" data-delete-scrim="${s.id}">Supprimer</button></div>
+    </article>`).join("") || `<div class="empty-state">Aucune scrim ajoutée pour le moment.</div>`;
+}
+function deleteScrim(id) {
+  state.scrims = state.scrims.filter(s => s.id !== id); saveState(); renderAll(); toast("Scrim supprimée.");
+}
+
+
+function getPracticeBlocks() {
+  return [1,2,3,4,5,6,7].map(i => ({ minutes: Number($("block" + i + "Min").value || 0), text: $("block" + i + "Text").value.trim() })).filter(b => b.minutes || b.text);
+}
+function updatePracticeTotal() {
+  if (!$('practiceTotal')) return;
+  const total = [1,2,3,4,5,6,7].reduce((sum, i) => sum + Number($("block" + i + "Min").value || 0), 0);
+  $("practiceTotal").textContent = `${total} min`;
+  $("practiceTotal").style.color = total >= 105 && total <= 135 ? "#38bdf8" : "#f59e0b";
+}
+function addPracticePlan(event) {
+  event.preventDefault();
+  const plan = {
+    id: nextReviewId(state.practicePlans), title: $("practiceTitle").value.trim(), date: $("practiceDate").value || todayInputValue(), start: $("practiceStart").value,
+    duration: Number($("practiceDuration").value || 120), map: $("practiceMap").value.trim(), focus: $("practiceFocus").value, players: $("practicePlayers").value.trim(),
+    intent: $("practiceIntent").value.trim(), objectives: $("practiceObjectives").value.trim(), success: $("practiceSuccess").value.trim(), material: $("practiceMaterial").value.trim(),
+    blocks: getPracticeBlocks(), adaptations: $("practiceAdaptations").value.trim(), assessment: $("practiceAssessment").value.trim(), coachNotes: $("practiceCoachNotes").value.trim(),
+    status: $("practiceStatus").value, coach: $("practiceCoach").value.trim()
+  };
+  if (!plan.title) return toast("Ajoute un titre de séance.");
+  state.practicePlans.push(plan); saveState(); event.target.reset(); resetPracticeDefaults(); renderAll(); toast("Séance de pratique ajoutée.");
+}
+function resetPracticeDefaults() {
+  if (!$('practiceDate')) return;
+  $("practiceDate").value = todayInputValue();
+  $("practiceDuration").value = 120;
+  const defaults = [
+    [10, "Accueil, rappel de l’objectif, lien avec la dernière scrim ou VOD."],
+    [15, "Activation : échauffement ciblé ou mini-défi mécanique relié au thème."],
+    [15, "Enseignement explicite : modèle, principe tactique, vocabulaire commun et attentes."],
+    [30, "Pratique guidée : drill en custom, répétitions de setup, utilitaires ou retakes."],
+    [35, "Mise en situation : scrim partielle, rounds thématiques ou scénarios imposés."],
+    [10, "Retour réflexif : ce qui a fonctionné, points à corriger, engagement pour la prochaine pratique."],
+    [5, "Trace / devoir : VOD à revoir, notes individuelles ou objectif personnel."]
+  ];
+  defaults.forEach((row, idx) => { const i = idx + 1; $("block" + i + "Min").value = row[0]; $("block" + i + "Text").value = row[1]; });
+  updatePracticeTotal();
+}
+function renderPracticePlans() {
+  if (!$('practiceList')) return;
+  if (!$("practiceDate").value) resetPracticeDefaults();
+  const plans = [...(state.practicePlans || [])].sort((a, b) => String(b.date).localeCompare(String(a.date)) || b.id - a.id);
+  const upcoming = plans.filter(p => p.status !== "Complétée" && p.status !== "Annulée").length;
+  const completed = plans.filter(p => p.status === "Complétée").length;
+  $("practiceSummary").innerHTML = `<article><span>Total</span><strong>${plans.length}</strong></article><article><span>À venir / actives</span><strong>${upcoming}</strong></article><article><span>Complétées</span><strong>${completed}</strong></article>`;
+  $("practiceList").innerHTML = plans.map(p => {
+    const total = (p.blocks || []).reduce((sum, b) => sum + Number(b.minutes || 0), 0);
+    return `<article class="review-card"><header><div><h4>${escapeHtml(p.title)}</h4><p>${escapeHtml(p.intent || "Aucune intention pédagogique ajoutée.")}</p></div><span class="review-chip practice-status">${escapeHtml(p.status || "Planifiée")}</span></header><div class="review-meta"><span class="review-chip">${escapeHtml(p.date || "-")}</span><span class="review-chip">${escapeHtml(p.start || "Heure non indiquée")}</span><span class="review-chip green">${total || p.duration || 120} min</span><span class="review-chip">${escapeHtml(p.focus || "Focus")}</span><span class="review-chip">${escapeHtml(p.map || "Map non indiquée")}</span></div><p><b>Objectifs :</b> ${escapeHtml(p.objectives || "-")}</p><p><b>Critères de réussite :</b> ${escapeHtml(p.success || "-")}</p><p><b>Évaluation formative :</b> ${escapeHtml(p.assessment || "-")}</p><div class="review-actions"><button type="button" data-print-practice="${p.id}">PDF / imprimer</button><button type="button" data-delete-practice="${p.id}">Supprimer</button></div></article>`;
+  }).join("") || `<div class="empty-state">Aucune séance planifiée. Crée une pratique de 2 heures avec le formulaire.</div>`;
+}
+function deletePracticePlan(id) {
+  state.practicePlans = state.practicePlans.filter(p => p.id !== id); saveState(); renderAll(); toast("Séance supprimée.");
+}
+function printPracticePlan(id) {
+  const p = state.practicePlans.find(x => x.id === Number(id));
+  if (!p) return toast("Séance introuvable.");
+  const root = $("print-root");
+  const total = (p.blocks || []).reduce((sum, b) => sum + Number(b.minutes || 0), 0);
+  const blockRows = (p.blocks || []).map((b, i) => `<tr><td>${i + 1}</td><td>${Number(b.minutes || 0)} min</td><td>${escapeHtml(b.text || "-")}</td></tr>`).join("");
+  root.innerHTML = `<article class="print-report"><div class="print-sheet"><section class="print-header"><div><p class="print-eyebrow">Planification pédagogique Valorant</p><h1>${escapeHtml(p.title)}</h1><p class="print-subtitle">${escapeHtml(p.date || "-")} • ${escapeHtml(p.start || "Heure non indiquée")} • ${total || p.duration || 120} minutes</p></div><div class="print-score"><span>Focus</span><strong style="font-size:20px">${escapeHtml(p.focus || "-")}</strong><small>${escapeHtml(p.map || "Map")}</small></div></section><main class="print-content"><div class="print-grid"><section class="print-card"><h2>Cadre de la séance</h2><div class="print-info"><b>Participants</b><span>${escapeHtml(p.players || "-")}</span><b>Coach</b><span>${escapeHtml(p.coach || "-")}</span><b>Statut</b><span>${escapeHtml(p.status || "Planifiée")}</span><b>Matériel</b><span>${escapeHtml(p.material || "-")}</span></div></section><section class="print-card soft"><h2>Intention pédagogique</h2><p>${escapeHtml(p.intent || "-")}</p><h2>Objectifs d’apprentissage</h2><p>${escapeHtml(p.objectives || "-")}</p></section><section class="print-card full"><h2>Déroulement minuté</h2><table class="print-lesson-table"><thead><tr><th>#</th><th>Temps</th><th>Activité / consigne</th></tr></thead><tbody>${blockRows}</tbody></table></section><section class="print-card"><h2>Critères de réussite</h2><p>${escapeHtml(p.success || "-")}</p></section><section class="print-card"><h2>Adaptations</h2><p>${escapeHtml(p.adaptations || "-")}</p></section><section class="print-card"><h2>Évaluation formative</h2><p>${escapeHtml(p.assessment || "-")}</p></section><section class="print-card"><h2>Notes coach</h2><p>${escapeHtml(p.coachNotes || "-")}</p></section></div><div class="print-footer"><span>Plan généré depuis le centre de recrutement</span><span>Format inspiré d’une planification de cours</span></div></main></div></article>`;
+  toast("Ouverture de la fenêtre d'impression...");
+  setTimeout(() => window.print(), 150);
 }
 
 function drawCharts() { renderBarChart(); renderRadar(); }
@@ -274,8 +434,6 @@ function roundRect(ctx, x, y, w, h, r) {
 function exportSelectedProfilePdf() {
   const id = Number($("candidateSelect").value);
   if (!id) return toast("Sélectionne un candidat avant de générer le PDF.");
-  const c = state.candidates.find(x => x.id === id);
-  if (!c) return toast("Candidat introuvable.");
   printProfilePdf(id);
 }
 function profileInterpretation(c) {
@@ -287,142 +445,28 @@ function profileInterpretation(c) {
   return "Profil exploratoire : candidat à revoir seulement si le besoin d'équipe correspond à ses forces spécifiques.";
 }
 function strongestCategories(c) {
-  return categories
-    .map(cat => ({ label: cat.label, value: Number(c[cat.key] || 0) }))
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 2)
-    .filter(x => x.value > 0)
-    .map(x => `${x.label} (${x.value}/5)`)
-    .join(", ") || "Aucune donnée";
+  return categories.map(cat => ({ label: cat.label, value: Number(c[cat.key] || 0) })).sort((a, b) => b.value - a.value).slice(0, 2).filter(x => x.value > 0).map(x => `${x.label} (${x.value}/5)`).join(", ") || "Aucune donnée";
 }
 function weakestCategories(c) {
-  return categories
-    .map(cat => ({ label: cat.label, value: Number(c[cat.key] || 0) }))
-    .sort((a, b) => a.value - b.value)
-    .slice(0, 2)
-    .filter(x => x.value > 0)
-    .map(x => `${x.label} (${x.value}/5)`)
-    .join(", ") || "Aucune donnée";
+  return categories.map(cat => ({ label: cat.label, value: Number(c[cat.key] || 0) })).sort((a, b) => a.value - b.value).slice(0, 2).filter(x => x.value > 0).map(x => `${x.label} (${x.value}/5)`).join(", ") || "Aucune donnée";
 }
 function printProfilePdf(id) {
-  const c = state.candidates.find(x => x.id === id);
+  const c = state.candidates.find(x => x.id === Number(id));
   if (!c) return toast("Candidat introuvable.");
+  const root = $("print-root");
+  if (!root) return toast("Zone d'impression introuvable. Vérifie que index.html contient #print-root.");
   const today = new Date().toLocaleDateString("fr-CA", { year: "numeric", month: "long", day: "numeric" });
   const s = score(c);
+  const relatedVodRows = (state.vodReviews || []).filter(r => r.candidateId === c.id).sort((a, b) => String(b.date).localeCompare(String(a.date))).slice(0, 3).map(r => `<div class="print-mini"><b>${escapeHtml(r.date || "-")} • ${escapeHtml(r.map || "Map")}</b><br>Plan : ${escapeHtml(r.actionPlan || "-")}<br>À corriger : ${escapeHtml(r.mistakes || "-")}</div>`).join("") || `<div class="print-mini">Aucune VOD review associée au joueur.</div>`;
+  const relatedScrimRows = (state.scrims || []).filter(s => String(s.players || "").toLowerCase().includes(String(c.pseudo || "").toLowerCase())).sort((a, b) => String(b.date).localeCompare(String(a.date))).slice(0, 2).map(s => `<div class="print-mini"><b>${escapeHtml(s.date || "-")} • ${escapeHtml(s.map || "Map")} vs ${escapeHtml(s.opponent || "-")}</b><br>Objectif : ${escapeHtml(s.objective || "-")}<br>Prochaine étape : ${escapeHtml(s.next || "-")}</div>`).join("") || `<div class="print-mini">Aucune scrim liée automatiquement au pseudo du joueur.</div>`;
   const categoryRows = categories.map(cat => {
     const value = Number(c[cat.key] || 0);
     const pct = Math.max(0, Math.min(100, value * 20));
-    return `<tr><td>${escapeHtml(cat.label)}</td><td>${value ? value + "/5" : "Non noté"}</td><td><div class="meter"><span style="width:${pct}%"></span></div></td></tr>`;
+    return `<tr><td>${escapeHtml(cat.label)}</td><td>${value ? value + "/5" : "Non noté"}</td><td><div class="print-meter"><span style="width:${pct}%"></span></div></td></tr>`;
   }).join("");
-  const html = `<!doctype html>
-<html lang="fr-CA">
-<head>
-<meta charset="utf-8" />
-<title>Profil joueur - ${escapeHtml(c.pseudo || c.nom)}</title>
-<style>
-  @page { size: Letter; margin: 0.55in; }
-  * { box-sizing: border-box; }
-  body { margin: 0; color: #111827; font-family: Segoe UI, Arial, sans-serif; background: white; }
-  .sheet { min-height: 10in; border: 1px solid #e5e7eb; border-radius: 20px; overflow: hidden; }
-  .header { display: flex; justify-content: space-between; gap: 24px; padding: 28px; color: white; background: linear-gradient(135deg, #111827, #ff4655); }
-  .eyebrow { margin: 0 0 8px; font-size: 11px; letter-spacing: .11em; text-transform: uppercase; opacity: .85; font-weight: 800; }
-  h1 { margin: 0; font-size: 34px; line-height: 1.05; }
-  .subtitle { margin: 8px 0 0; opacity: .92; }
-  .scoreBox { width: 150px; min-width: 150px; text-align: center; border: 1px solid rgba(255,255,255,.35); border-radius: 18px; padding: 14px; background: rgba(255,255,255,.12); }
-  .scoreBox strong { display: block; font-size: 36px; }
-  .content { padding: 24px 28px 28px; }
-  .grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: 18px; }
-  .card { border: 1px solid #e5e7eb; border-radius: 16px; padding: 16px; background: #fff; break-inside: avoid; }
-  .card.soft { background: #f8fafc; }
-  h2 { margin: 0 0 12px; font-size: 17px; color: #111827; }
-  .info { display: grid; grid-template-columns: 150px 1fr; gap: 7px 12px; font-size: 13px; }
-  .info b { color: #64748b; }
-  .decision { display: inline-flex; padding: 7px 11px; border-radius: 999px; background: #fee2e2; color: #b91c1c; font-weight: 900; }
-  table { width: 100%; border-collapse: collapse; font-size: 13px; }
-  td, th { padding: 8px 0; border-bottom: 1px solid #e5e7eb; text-align: left; vertical-align: middle; }
-  th { color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
-  .meter { height: 10px; border-radius: 999px; background: #e5e7eb; overflow: hidden; }
-  .meter span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #ff4655, #38bdf8); }
-  .summary { padding: 16px; border-left: 5px solid #ff4655; background: #fff1f2; border-radius: 14px; line-height: 1.45; }
-  .glossary { display: grid; gap: 8px; font-size: 12.5px; color: #334155; line-height: 1.35; }
-  .footer { margin-top: 18px; display: flex; justify-content: space-between; color: #64748b; font-size: 11px; }
-  .full { grid-column: 1 / -1; }
-  @media print { .no-print { display: none; } .sheet { border: none; } }
-</style>
-</head>
-<body>
-  <div class="sheet">
-    <section class="header">
-      <div>
-        <p class="eyebrow">Rapport de recrutement Valorant</p>
-        <h1>${escapeHtml(c.pseudo || "Sans pseudo")}</h1>
-        <p class="subtitle">${escapeHtml(c.nom || "Nom non indiqué")} • ${escapeHtml(c.roleRecommande || c.roleEvalue || c.rolePrefere || "Rôle à confirmer")}</p>
-      </div>
-      <div class="scoreBox"><span>Score</span><strong>${isEvaluated(c) ? s.toFixed(1) : "-"}</strong><small>/100</small></div>
-    </section>
-    <main class="content">
-      <div class="grid">
-        <section class="card">
-          <h2>Informations du candidat</h2>
-          <div class="info">
-            <b>ID</b><span>${c.id}</span>
-            <b>Nom</b><span>${escapeHtml(c.nom || "-")}</span>
-            <b>Pseudo</b><span>${escapeHtml(c.pseudo || "-")}</span>
-            <b>Âge</b><span>${c.age || "-"}</span>
-            <b>Programme</b><span>${escapeHtml(c.programme || "-")}</span>
-            <b>Rang actuel</b><span>${escapeHtml(c.rangActuel || "-")}</span>
-            <b>Rang peak</b><span>${escapeHtml(c.rangPeak || "-")}</span>
-            <b>Rôle préféré</b><span>${escapeHtml(c.rolePrefere || "-")}</span>
-            <b>Agents principaux</b><span>${escapeHtml(c.agentsPrincipaux || "-")}</span>
-            <b>Disponibilités</b><span>${escapeHtml(c.disponibilites || "-")}</span>
-          </div>
-        </section>
-        <section class="card soft">
-          <h2>Recommandation</h2>
-          <p><span class="decision">${escapeHtml(c.decision || "À revoir")}</span></p>
-          <div class="info">
-            <b>Rôle évalué</b><span>${escapeHtml(c.roleEvalue || "-")}</span>
-            <b>Rôle recommandé</b><span>${escapeHtml(c.roleRecommande || "-")}</span>
-            <b>Priorité de développement</b><span>${escapeHtml(c.prioriteDeveloppement || "-")}</span>
-            <b>Forces principales</b><span>${escapeHtml(strongestCategories(c))}</span>
-            <b>Points à surveiller</b><span>${escapeHtml(weakestCategories(c))}</span>
-          </div>
-        </section>
-        <section class="card full">
-          <h2>Évaluation du tryout</h2>
-          <table><thead><tr><th>Catégorie</th><th>Note</th><th>Niveau visuel</th></tr></thead><tbody>${categoryRows}</tbody></table>
-        </section>
-        <section class="card full">
-          <h2>Résumé exécutif</h2>
-          <div class="summary">${escapeHtml(profileInterpretation(c))}</div>
-        </section>
-        <section class="card">
-          <h2>Contexte pour lecteur non spécialiste</h2>
-          <div class="glossary">
-            <div><b>Valorant</b> : jeu d'équipe tactique où cinq joueurs coordonnent leurs rôles, communications et décisions.</div>
-            <div><b>Rôle</b> : fonction principale du joueur dans l'équipe, par exemple ouvrir l'attaque, contrôler des zones ou protéger les flancs.</div>
-            <div><b>Agents</b> : personnages joués, chacun avec des outils différents. La maîtrise des agents influence la contribution au collectif.</div>
-            <div><b>Score /100</b> : résultat pondéré des six critères. Il sert à comparer les candidats, pas à représenter uniquement le talent mécanique.</div>
-          </div>
-        </section>
-        <section class="card">
-          <h2>Commentaires et objectif</h2>
-          <p><b>Objectif personnel :</b><br>${escapeHtml(c.objectifPersonnel || "-")}</p>
-          <p><b>Expérience compétitive :</b><br>${escapeHtml(c.experienceCompetitive || "-")}</p>
-          <p><b>Commentaires du recruteur :</b><br>${escapeHtml(c.commentaires || "-")}</p>
-        </section>
-      </div>
-      <div class="footer"><span>Généré le ${today}</span><span>Centre de recrutement Valorant collégial</span></div>
-    </main>
-  </div>
-  <script>window.onload = () => { window.print(); };</script>
-</body>
-</html>`;
-  const win = window.open("", "_blank");
-  if (!win) return toast("Le navigateur a bloqué la fenêtre PDF. Autorise les fenêtres contextuelles pour ce site.");
-  win.document.open();
-  win.document.write(html);
-  win.document.close();
+  root.innerHTML = `<article class="print-report"><div class="print-sheet"><section class="print-header"><div><p class="print-eyebrow">Rapport de recrutement Valorant</p><h1>${escapeHtml(c.pseudo || "Sans pseudo")}</h1><p class="print-subtitle">${escapeHtml(c.nom || "Nom non indiqué")} • ${escapeHtml(c.roleRecommande || c.roleEvalue || c.rolePrefere || "Rôle à confirmer")}</p></div><div class="print-score"><span>Score</span><strong>${isEvaluated(c) ? s.toFixed(1) : "-"}</strong><small>/100</small></div></section><main class="print-content"><div class="print-grid"><section class="print-card"><h2>Informations du candidat</h2><div class="print-info"><b>ID</b><span>${c.id}</span><b>Nom</b><span>${escapeHtml(c.nom || "-")}</span><b>Pseudo</b><span>${escapeHtml(c.pseudo || "-")}</span><b>Âge</b><span>${c.age || "-"}</span><b>Programme</b><span>${escapeHtml(c.programme || "-")}</span><b>Rang actuel</b><span>${escapeHtml(c.rangActuel || "-")}</span><b>Rang peak</b><span>${escapeHtml(c.rangPeak || "-")}</span><b>Rôle préféré</b><span>${escapeHtml(c.rolePrefere || "-")}</span><b>Agents principaux</b><span>${escapeHtml(c.agentsPrincipaux || "-")}</span><b>Disponibilités</b><span>${escapeHtml(c.disponibilites || "-")}</span></div></section><section class="print-card soft"><h2>Recommandation</h2><p><span class="print-decision">${escapeHtml(c.decision || "À revoir")}</span></p><div class="print-info"><b>Rôle évalué</b><span>${escapeHtml(c.roleEvalue || "-")}</span><b>Rôle recommandé</b><span>${escapeHtml(c.roleRecommande || "-")}</span><b>Priorité de développement</b><span>${escapeHtml(c.prioriteDeveloppement || "-")}</span><b>Forces principales</b><span>${escapeHtml(strongestCategories(c))}</span><b>Points à surveiller</b><span>${escapeHtml(weakestCategories(c))}</span></div></section><section class="print-card full"><h2>Évaluation du tryout</h2><table class="print-table"><thead><tr><th>Catégorie</th><th>Note</th><th>Niveau visuel</th></tr></thead><tbody>${categoryRows}</tbody></table></section><section class="print-card full"><h2>Résumé exécutif</h2><div class="print-summary">${escapeHtml(profileInterpretation(c))}</div></section><section class="print-card"><h2>Contexte pour lecteur non spécialiste</h2><div class="print-glossary"><div><b>Valorant</b> : jeu d'équipe tactique où cinq joueurs coordonnent rôles, communications et décisions.</div><div><b>Rôle</b> : fonction principale du joueur dans l'équipe, par exemple ouvrir l'attaque, contrôler des zones ou protéger les flancs.</div><div><b>Agents</b> : personnages joués, chacun avec des outils différents. Leur maîtrise influence la contribution au collectif.</div><div><b>Score /100</b> : résultat pondéré des six critères. Il sert à comparer les candidats, pas seulement le talent mécanique.</div></div></section><section class="print-card full"><h2>VOD reviews associées</h2><div class="print-section-list">${relatedVodRows}</div></section><section class="print-card full"><h2>Scrims liées au joueur</h2><div class="print-section-list">${relatedScrimRows}</div></section><section class="print-card"><h2>Commentaires et objectif</h2><p><b>Objectif personnel :</b><br>${escapeHtml(c.objectifPersonnel || "-")}</p><p><b>Expérience compétitive :</b><br>${escapeHtml(c.experienceCompetitive || "-")}</p><p><b>Commentaires du recruteur :</b><br>${escapeHtml(c.commentaires || "-")}</p></section></div><div class="print-footer"><span>Généré le ${today}</span><span>Centre de recrutement Valorant collégial</span></div></main></div></article>`;
+  toast("Ouverture de la fenêtre d'impression...");
+  setTimeout(() => window.print(), 150);
 }
 
 function exportCsv() {
@@ -453,4 +497,5 @@ function download(filename, content, type) {
   URL.revokeObjectURL(url);
 }
 
+window.addEventListener("afterprint", () => { const root = $("print-root"); if (root) root.innerHTML = ""; });
 init();
